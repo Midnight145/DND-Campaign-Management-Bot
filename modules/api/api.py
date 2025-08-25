@@ -141,6 +141,8 @@ async def get_many_campaign(id_list: str, auth: str, response: Response):
     init_guild()
     if '[' in id_list:
         id_list = id_list[1:-1]
+    if id_list == "":
+        return json.dumps({})
     try:
         campaign_ids = [int(i) for i in id_list.split(",")]
     except ValueError:
