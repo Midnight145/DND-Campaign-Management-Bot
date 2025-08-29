@@ -202,15 +202,22 @@ class CampaignManager(commands.Cog):
                 self.bot.connection.commit()
 
     @commands.command()
-    @commands.has_any_role(1050188024287338567, 873734392458145912, 809567701735440469)  # dev, admin, officer
     async def list_campaigns(self, context: commands.Context):
         """
         :param context: Command context
         :return: None
         """
+        for role in context.author.roles:
+            if role.id in [1050188024287338567, 873734392458145912, 809567701735440469]:  # dev, admin, officer
+                query = "SELECT * FROM campaigns"
+                break
+            elif role.id == 812785919727894539:
+                # this is dangerous! :D
+                query = f"SELECT * FROM campaigns WHERE dm={context.author.id}"
+
         message_content = ""
         async with self.bot.mutex:
-            resp = self.bot.db.execute(f"SELECT * FROM campaigns").fetchall()
+            resp = self.bot.db.execute(query).fetchall()
         for row in resp:
             message_content += f"{row['id']}: {row['name']}, DM: {str(context.guild.get_member(row['dm']))}, " \
                                f"{row['current_players']}/{row['max_players']} {'Locked' if row['locked'] else ''}\n"
@@ -261,10 +268,25 @@ class CampaignManager(commands.Cog):
             print(f"Error {'un' if status == 0 else ''}locking campaign")
 
     @commands.command()
-    @commands.has_any_role(1050188024287338567, 873734392458145912, 809567701735440469)  # dev, admin, officer
     async def list_players(self, context: commands.Context, campaign: Union[int, str]):
+        admin = False
+        dm = False
+        for role in context.author.roles:
+            if role.id in [1050188024287338567, 873734392458145912, 809567701735440469]:  # dev, admin, officer
+                query = "SELECT * FROM campaigns"
+                admin = True
+                # we don't care if they are also a dm, they can see all campaigns
+                break
+            elif role.id == 812785919727894539:
+                # they might also be an admin so we dont break here
+                dm = True
+        if not admin and not dm:
+            return
+
         async with self.bot.mutex:
             campaign = self.CampaignSQLHelper.select_campaign(campaign)
+            if dm and campaign.dm != context.author.id:
+                return
             players = self.CampaignSQLHelper.get_players(campaign)
             if players is None:
                 await context.send("An error occurred.")
