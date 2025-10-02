@@ -135,10 +135,9 @@ class CampaignReactionHandler(commands.Cog):
                     self.bot.connection.commit()
                     await message.delete()
                     await channel.send(f"Campaign {campaign_info.name} has been created!")
-                    if website:
-                        info = self.bot.CampaignSQLHelper.select_campaign(campaign_info.name)
-                        await self.bot.campaign_creation_callback(campaign=info)
-                        return
+                    info = self.bot.CampaignSQLHelper.select_campaign(campaign_info.name)
+                    await self.bot.campaign_creation_callback(campaign=info)
+                    return
                 else:
                     await channel.send("An unknown error occurred while creating the campaign.")
 
