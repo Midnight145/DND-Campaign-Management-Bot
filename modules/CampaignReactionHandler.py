@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import re
 import typing
@@ -5,6 +6,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Callable, Awaitable
 
 import discord
+from discord.embeds import _EmbedFieldProxy
 from discord.ext import commands
 
 from . import CampaignInfo
@@ -27,44 +29,35 @@ class CampaignReactionHandler(commands.Cog):
         :return: None
         """
 
-        class FieldValuesWebsite(IntEnum):
-            first_name = 0
-            last_name = 1
-            unt_email = 2
-            discord_tag = 3
-            discord_id = 4
-            dm_experience = 5
-            playstyle = 6
-            campaign_name = 7
-            info_message = 8
-            system = 9
-            location = 10
-            meeting_frequency = 11
-            meeting_day = 12
-            meeting_time = 13
-            session_length = 14
-            min_players = 15
-            max_players = 16
-            new_player_friendly = 17
+        @dataclasses.dataclass
+        class FieldInfo:
+            first_name: str
+            last_name: str
+            unt_email: str
+            discord_username: str
+            discord_id: int
+            dm_experience: str
+            playstyle: str
+            campaign_name: str
+            description: str
+            system: str
+            location: str
+            min_players: int
+            max_players: int
+            new_player_friendly: str
+            # all the following can occasionally be blank
+            meeting_frequency: str = ""
+            meeting_time: str = ""
+            session_length: str = ""
+            meeting_date: str = ""
+            meeting_day: str = ""
 
-        class FieldValues(IntEnum):
-            first_name = 0
-            last_name = 1
-            discord_username = 2
-            unt_email = 3
-            meeting_day = 4
-            meeting_time = 5
-            location = 6
-            meeting_frequency = 7
-            system = 8
-            campaign_name = 9
-            info_message = 10
-            dm_experience = 11
-            playstyle = 12
-            new_player_friendly = 13
-            session_length = 14
-            min_players = 15
-            max_players = 16
+        def parse_fields(fields: list[_EmbedFieldProxy]) -> FieldInfo:
+            field_dict = {field.name.lower().replace(" ", "_"): field.value for field in fields}
+            field_dict['discord_id'] = int(field_dict['discord_id'])
+            field_dict['min_players'] = int(field_dict['min_players'])
+            field_dict['max_players'] = int(field_dict['max_players'])
+            return FieldInfo(**field_dict)
 
         if payload.user_id == self.bot.user.id:
             return
@@ -115,53 +108,28 @@ class CampaignReactionHandler(commands.Cog):
             if payload.emoji.name == "✅":
                 print("DM receipt approved")
                 website = False
-                if "website" in embed.title.lower():
-                    print("Website application detected")
-                    website = True
-                if website:
-                    print(embed.fields[FieldValuesWebsite.discord_id].value)
-                    dm = channel.guild.get_member(int(embed.fields[FieldValuesWebsite.discord_id].value))
-                    print(dm)
-                    campaign_info = await self.bot.CampaignBuilder.create_campaign(
-                        channel.guild, embed.fields[FieldValuesWebsite.campaign_name].value, embed.fields[FieldValuesWebsite.location].value, dm)
 
-                    campaign_info.min_players = int(embed.fields[FieldValuesWebsite.min_players].value)
-                    campaign_info.max_players = int(embed.fields[FieldValuesWebsite.max_players].value)
-                    campaign_info.location = embed.fields[FieldValuesWebsite.location].value
-                    campaign_info.playstyle = embed.fields[FieldValuesWebsite.playstyle].value
-                    campaign_info.info_message = embed.fields[FieldValuesWebsite.info_message].value
-                    campaign_info.system = embed.fields[FieldValuesWebsite.system].value
-                    campaign_info.meeting_frequency = embed.fields[FieldValuesWebsite.meeting_frequency].value
-                    if "Day" in embed.fields[FieldValuesWebsite.meeting_day].name:
-                        campaign_info.meeting_day = embed.fields[FieldValuesWebsite.meeting_day].value
-                        campaign_info.meeting_date = ""
-                    else:
-                        campaign_info.meeting_day = ""
-                        campaign_info.meeting_date = embed.fields[FieldValuesWebsite.meeting_day].value
-                    campaign_info.meeting_time = embed.fields[FieldValuesWebsite.meeting_time].value
-                    campaign_info.session_length = embed.fields[FieldValuesWebsite.session_length].value
-                    campaign_info.new_player_friendly = embed.fields[FieldValuesWebsite.new_player_friendly].value
+                fields = parse_fields(embed.fields)
+                dm = channel.guild.get_member(fields.discord_id)
+                campaign_info = await self.bot.CampaignBuilder.create_campaign(
+                    channel.guild, fields.campaign_name, fields.location, dm)
+
+                campaign_info.min_players = fields.min_players
+                campaign_info.max_players = fields.max_players
+                campaign_info.location = fields.location
+                campaign_info.playstyle = fields.playstyle
+                campaign_info.info_message = fields.description
+                campaign_info.system = fields.system
+                campaign_info.meeting_frequency = fields.meeting_frequency
+                if "Day" in fields.meeting_day:
+                    campaign_info.meeting_day = fields.meeting_day
+                    campaign_info.meeting_date = ""
                 else:
-                    dm = channel.guild.get_member_named(embed.fields[FieldValues.discord_username].value)
-                    campaign_info = await self.bot.CampaignBuilder.create_campaign(
-                        channel.guild, embed.fields[FieldValues.campaign_name].value, embed.fields[FieldValuesWebsite.location].value, dm)
-
-                    campaign_info.min_players = int(embed.fields[FieldValues.min_players].value)
-                    campaign_info.max_players = int(embed.fields[FieldValues.max_players].value)
-                    campaign_info.location = embed.fields[FieldValues.location].value
-                    campaign_info.playstyle = embed.fields[FieldValues.playstyle].value
-                    campaign_info.info_message = embed.fields[FieldValues.info_message].value
-                    campaign_info.system = embed.fields[FieldValues.system].value
-                    campaign_info.meeting_frequency = embed.fields[FieldValues.meeting_frequency].value
-                    if "Day" in embed.fields[FieldValues.meeting_day].name:
-                        campaign_info.meeting_day = embed.fields[FieldValues.meeting_day].value
-                        campaign_info.meeting_date = ""
-                    else:
-                        campaign_info.meeting_day = ""
-                        campaign_info.meeting_date = embed.fields[FieldValues.meeting_day].value
-                    campaign_info.meeting_time = embed.fields[FieldValues.meeting_time].value
-                    campaign_info.session_length = embed.fields[FieldValues.session_length].value
-                    campaign_info.new_player_friendly = embed.fields[FieldValues.new_player_friendly].value
+                    campaign_info.meeting_day = ""
+                    campaign_info.meeting_date = fields.meeting_date
+                campaign_info.meeting_time = fields.meeting_time
+                campaign_info.session_length = fields.session_length
+                campaign_info.new_player_friendly = fields.new_player_friendly
 
                 commit = self.bot.CampaignSQLHelper.create_campaign(campaign_info)
                 if commit:
