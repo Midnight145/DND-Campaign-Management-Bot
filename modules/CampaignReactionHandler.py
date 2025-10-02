@@ -2,11 +2,9 @@ import dataclasses
 import datetime
 import re
 import typing
-from enum import IntEnum
 from typing import TYPE_CHECKING, Callable, Awaitable
 
 import discord
-from discord.embeds import _EmbedFieldProxy
 from discord.ext import commands
 
 from . import CampaignInfo
@@ -14,6 +12,7 @@ from .Strings import Confirmation, Error
 from .api.CampaignActionHandler import ActionHandler
 
 if TYPE_CHECKING:  # TYPE_CHECKING is always false, allows for type hinting without circular import
+    # noinspection PyUnusedImports
     from ..DNDBot import DNDBot
 
 
@@ -52,7 +51,7 @@ class CampaignReactionHandler(commands.Cog):
             meeting_date: str = ""
             meeting_day: str = ""
 
-        def parse_fields(fields: list[_EmbedFieldProxy]) -> FieldInfo:
+        def parse_fields(fields) -> FieldInfo:
             field_dict = {field.name.lower().replace(" ", "_"): field.value for field in fields}
             field_dict['discord_id'] = int(field_dict['discord_id'])
             field_dict['min_players'] = int(field_dict['min_players'])
