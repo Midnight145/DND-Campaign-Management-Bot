@@ -222,7 +222,10 @@ async def get_players(campaign_id: typing.Union[int, str], auth: str, response: 
 @permissions(Permissions.CAMPAIGN_CREATE)
 async def create_campaign(auth: str, campaign: PartialCampaignInfo, response: Response):
     init_guild()
-    if not campaign.meeting_date and not campaign.meeting_day:
+    text_based = False
+    if "text-based" in campaign.location.lower():
+        text_based = True
+    if (not campaign.meeting_date and not campaign.meeting_day) and not text_based:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return json.dumps({"error": "Meeting date or day must be specified"})
     embed = discord.Embed(
@@ -239,13 +242,14 @@ async def create_campaign(auth: str, campaign: PartialCampaignInfo, response: Re
     embed.add_field(name="Description", value=campaign.info_message, inline=False)
     embed.add_field(name="System", value=campaign.system, inline=True)
     embed.add_field(name="Location", value=campaign.location, inline=True)
-    embed.add_field(name="Meeting Frequency", value=campaign.meeting_frequency, inline=True)
-    if campaign.meeting_day:
-        embed.add_field(name="Meeting Day", value=campaign.meeting_day, inline=True)
-    elif campaign.meeting_date:
-        embed.add_field(name="Meeting Date", value=campaign.meeting_date, inline=True)
-    embed.add_field(name="Meeting Time", value=campaign.meeting_time, inline=True)
-    embed.add_field(name="Session Length", value=campaign.session_length, inline=True)
+    if not text_based:
+        embed.add_field(name="Meeting Frequency", value=campaign.meeting_frequency, inline=True)
+        if campaign.meeting_day:
+            embed.add_field(name="Meeting Day", value=campaign.meeting_day, inline=True)
+        elif campaign.meeting_date:
+            embed.add_field(name="Meeting Date", value=campaign.meeting_date, inline=True)
+        embed.add_field(name="Meeting Time", value=campaign.meeting_time, inline=True)
+        embed.add_field(name="Session Length", value=campaign.session_length, inline=True)
     embed.add_field(name="Min Players", value=campaign.min_players, inline=True)
     embed.add_field(name="Max Players", value=campaign.max_players, inline=True)
     embed.add_field(name="New Player Friendly", value=campaign.new_player_friendly, inline=True)
@@ -395,16 +399,26 @@ async def get_user_warnings(user_id: int, auth: str, response: Response):
 # async def campaign_creation_callback(instance: DNDBot, campaign_info: CampaignInfo):
 async def campaign_creation_callback(*args, campaign: CampaignInfo = None):
     init_guild()
+    text_based = False
+    if "text-based" in campaign.location.lower():
+        text_based = True
     oneshot = campaign.meeting_date is not ""
     name = campaign.name
     dungeon_master = await guild.fetch_member(campaign.dm)
 
     DNDBot.instance.connection.commit()
-    await (guild.get_channel(DNDBot.instance.config["notification_channel"])).send(
-        f"<@&{DNDBot.instance.config['new_campaign_role']}>: A new campaign has opened: "
+    channel = guild.get_channel(DNDBot.instance.config["notification_channel"])
+    if not text_based:
+        await channel.send(
+            f"<@&{DNDBot.instance.config['new_campaign_role']}>: A new campaign has opened: "
             f"\"{campaign.name}\"! This {'one-shot' if oneshot else 'campaign'} will run using {campaign.system} by <@{campaign.dm}> on {campaign.meeting_date if oneshot else campaign.meeting_day}, for {campaign.session_length} starting at {campaign.meeting_time}! "
-        f"Apply to join here: <https://www.untcriticalhit.org/campaigns#{campaign.id}>")
-
+            f"Apply to join here: <https://www.untcriticalhit.org/campaigns#{campaign.id}>")
+    else:
+        await channel.send(
+            f"<@&{DNDBot.instance.config['new_campaign_role']}>: A new campaign has opened: "
+            f"\"{campaign.name}\"! This campaign will run using {campaign.system} by <@{campaign.dm}>. This is a text-based campaign, so it will likely be run entirely asynchronously on Discord with no vocal aspect. "
+            f"Apply to join here: <https://www.untcriticalhit.org/campaigns#{campaign.id}>"
+        )
     embed = discord.Embed(
         title="Campaign Created",
         description=f"Campaign {name} created.",
