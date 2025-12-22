@@ -273,7 +273,6 @@ class CampaignManager(commands.Cog):
         dm = False
         for role in context.author.roles:
             if role.id in [1050188024287338567, 873734392458145912, 809567701735440469]:  # dev, admin, officer
-                query = "SELECT * FROM campaigns"
                 admin = True
                 # we don't care if they are also a dm, they can see all campaigns
                 break
@@ -285,7 +284,7 @@ class CampaignManager(commands.Cog):
 
         async with self.bot.mutex:
             campaign = self.CampaignSQLHelper.select_campaign(campaign)
-            if dm and campaign.dm != context.author.id:
+            if (not admin) and dm and (campaign.dm != context.author.id):
                 return
             players = self.CampaignSQLHelper.get_players(campaign)
             if players is None:
