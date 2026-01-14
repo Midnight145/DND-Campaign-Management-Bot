@@ -402,7 +402,7 @@ async def campaign_creation_callback(*args, campaign: CampaignInfo = None):
     text_based = False
     if "text-based" in campaign.location.lower():
         text_based = True
-    oneshot = campaign.meeting_date is not ""
+    oneshot = bool(campaign.meeting_date)
     name = campaign.name
     dungeon_master = await guild.fetch_member(campaign.dm)
 

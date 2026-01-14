@@ -120,7 +120,7 @@ class CampaignReactionHandler(commands.Cog):
                 campaign_info.info_message = fields.description
                 campaign_info.system = fields.system
                 campaign_info.meeting_frequency = fields.meeting_frequency
-                if "Day" in fields.meeting_day:
+                if fields.meeting_day:
                     campaign_info.meeting_day = fields.meeting_day
                     campaign_info.meeting_date = ""
                 else:
