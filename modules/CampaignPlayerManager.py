@@ -232,7 +232,7 @@ class CampaignPlayerManager(commands.Cog):
             await context.send(embed=embed)
 
     @commands.has_any_role(1050188024287338567, 873734392458145912, 809567701735440469)  # dev, admin, officer
-    @commands.command()  # todo: make command args consistent with every other command
+    @commands.command(aliases=["set_max_players"])  # todo: make command args consistent with every other command
     async def set_max_player_count_command(self, context: commands.Context, count: int, campaign: Union[int, str]):
         async with self.bot.mutex:
             await self.set_max_player_count(context.channel, campaign, count)

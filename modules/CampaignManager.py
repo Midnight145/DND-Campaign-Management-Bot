@@ -119,9 +119,13 @@ class CampaignManager(commands.Cog):
             await context.send("Deleting campaign...")
             await self.delete_campaign(context.channel, resp, reason)
 
-    async def delete_campaign(self, channel: discord.TextChannel, campaign: CampaignInfo, reason="Campaign deleted"):
+    async def delete_campaign(self, channel: discord.TextChannel, campaign: Union[CampaignInfo, int], reason="Campaign deleted"):
 
-
+        if isinstance(campaign, int):
+            campaign = self.CampaignSQLHelper.select_campaign(campaign)
+            if campaign is None:
+                await channel.send(f"Could not find campaign {campaign}")
+                return
         members = [i["id"] for i in self.CampaignSQLHelper.get_players(campaign)]
 
         commit = self.CampaignSQLHelper.delete_campaign(campaign.id)

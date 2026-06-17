@@ -1,8 +1,8 @@
-Columnar~=1.4.1
-jishaku~=2.5.1
-buttons~=0.1.9
-fastapi~=0.110.0
+Columnar>=1.4
+jishaku>=2.5
+buttons>=0.1
+fastapi>=0.110
 uvicorn
-discord~=2.2.2
-pydantic~=2.6.4
-pytz~=2024.1
+discord>=2.2
+pydantic>=2.6
+pytz>=2024.1

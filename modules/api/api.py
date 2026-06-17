@@ -11,7 +11,7 @@ from .CampaignActionHandler import ActionEmbedCreator
 from .returned_structs import UserInfo
 from .structs import CampaignApplication, PartialCampaignInfo, CampaignActionRequest, UserUpdateRequest, \
     UserUpdateManyRequest
-from .. import CampaignInfo
+from .. import CampaignInfo, CampaignSQLHelper
 
 router = APIRouter()
 # noinspection PyTypeChecker
@@ -222,6 +222,9 @@ async def get_players(campaign_id: typing.Union[int, str], auth: str, response: 
 @permissions(Permissions.CAMPAIGN_CREATE)
 async def create_campaign(auth: str, campaign: PartialCampaignInfo, response: Response):
     init_guild()
+    if DNDBot.instance.CampaignSQLHelper.select_campaign(campaign):
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return json.dumps({"error": "Campaign with this name already exists"})
     text_based = False
     if "text-based" in campaign.location.lower():
         text_based = True
