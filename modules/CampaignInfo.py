@@ -37,7 +37,7 @@ class CampaignInfo:
     max_players: int = 0
     current_players: int = 0
     status_message: int = 0
-    id: str = ""
+    id: int = 0
     locked: str = ""
     info_message: str = ""
     location: str = ""

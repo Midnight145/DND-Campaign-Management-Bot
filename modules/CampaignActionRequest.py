@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 import discord
 from discord.ext import commands
 
+from . import CampaignInfo
+
 if TYPE_CHECKING:
     from ..DNDBot import DNDBot
 
@@ -24,6 +26,7 @@ class CampaignActionRequest(commands.Cog):
         await message.add_reaction("✅")
         await message.add_reaction("❌")
 
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.channel_id != 955932420262232065:
             return
@@ -40,24 +43,24 @@ class CampaignActionRequest(commands.Cog):
 
         first, last = embed.fields[0].value, embed.fields[1].value
         discord_user = embed.fields[2].value
-        campaign = int(embed.fields[3].value)
+        campaign = embed.fields[3].value
         action = embed.fields[4].value
         reason = '\n'.join([i.value for i in embed.fields[7::]])
-        campaign = await self.bot.CampaignSQLHelper.select_campaign(campaign)
+        campaign = self.bot.CampaignSQLHelper.select_campaign(campaign)
         if action.startswith("End"):
-            result = await ActionHandler.end(self.bot, message.channel, campaign.id, payload.member, reason)
+            result = await ActionHandler.end(self.bot, message.channel, campaign, payload.member, reason)
         elif action.startswith("Leave"):
-            result = await ActionHandler.leave(self.bot, message.channel, campaign.id, payload.member)
+            result = await ActionHandler.leave(self.bot, message.channel, campaign, payload.member)
         elif action.startswith("Pause"):
-            result = await ActionHandler.pause(self.bot, message.channel, campaign.id, payload.member)
+            result = await ActionHandler.pause(self.bot, message.channel, campaign, payload.member)
         elif action.startswith("Resume"):
-            result = await ActionHandler.resume(self.bot, message.channel, campaign.id, payload.member)
+            result = await ActionHandler.resume(self.bot, message.channel, campaign, payload.member)
         elif action.startswith("Lock"):
-            result = await ActionHandler.lock(self.bot, message.channel, campaign.id, payload.member)
+            result = await ActionHandler.lock(self.bot, message.channel, campaign, payload.member)
         elif action.startswith("Unlock"):
-            result = await ActionHandler.unlock(self.bot, message.channel, campaign.id, payload.member)
+            result = await ActionHandler.unlock(self.bot, message.channel, campaign, payload.member)
         elif action.startswith("Update"):
-            result = await ActionHandler.update(self.bot, message.channel, campaign.id, payload.member)
+            result = await ActionHandler.update(self.bot, message.channel, campaign, payload.member, int(embed.fields[6].value))
         else:
             result = False
         if result:
@@ -88,9 +91,9 @@ def dm_check(func):
 class ActionHandler:
 
     @staticmethod
-    async def leave(bot: 'DNDBot', channel: discord.TextChannel, campaign: int, member: discord.Member) -> bool:
+    async def leave(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
         try:
-            await bot.CampaignPlayerManager.remove_player(channel, member, campaign)
+            await bot.CampaignPlayerManager.remove_player(channel, member, campaign.id)
 
             return True
         except Exception as e:
@@ -99,7 +102,7 @@ class ActionHandler:
 
     @staticmethod
     @dm_check
-    async def end(bot: 'DNDBot', channel: discord.TextChannel, campaign: int, member: discord.Member, reason = "DM's request") -> bool:
+    async def end(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member, reason = "DM's request") -> bool:
         try:
             await bot.CampaignManager.delete_campaign(channel, campaign, reason)
             campaign = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
@@ -114,7 +117,7 @@ class ActionHandler:
 
     @staticmethod
     @dm_check
-    async def pause(bot: 'DNDBot', channel: discord.TextChannel, campaign: int, member: discord.Member) -> bool:
+    async def pause(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
         campaign_info = await bot.CampaignSQLHelper.select_campaign(campaign)
         category: discord.CategoryChannel = channel.guild.get_channel(campaign_info.category)
         campaign_role = channel.guild.get_role(campaign_info.role)
@@ -145,7 +148,7 @@ class ActionHandler:
 
     @staticmethod
     @dm_check
-    async def resume(bot: 'DNDBot', channel: discord.TextChannel, campaign: int, member: discord.Member) -> bool:
+    async def resume(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
         campaign_info = await bot.CampaignSQLHelper.select_campaign(campaign)
         category: discord.CategoryChannel = channel.guild.get_channel(campaign_info.category)
         campaign_role = channel.guild.get_role(campaign_info.role)
@@ -170,9 +173,9 @@ class ActionHandler:
 
     @staticmethod
     @dm_check
-    async def lock(bot: 'DNDBot', channel: discord.TextChannel, campaign: int, member: discord.Member) -> bool:
+    async def lock(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
         try:
-            await bot.CampaignManager.update_lock_status(channel, campaign, 1)
+            await bot.CampaignManager.update_lock_status(channel, campaign.id, 1)
             campaign_info = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
             dm = channel.guild.get_member(campaign_info.dm)
             await dm.send(f"This is a notification that your request to lock a campaign has been processed. New "
@@ -185,9 +188,9 @@ class ActionHandler:
 
     @staticmethod
     @dm_check
-    async def unlock(bot: 'DNDBot', channel: discord.TextChannel, campaign: int, member: discord.Member) -> bool:
+    async def unlock(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
         try:
-            await bot.CampaignManager.update_lock_status(channel, campaign, 0)
+            await bot.CampaignManager.update_lock_status(channel, campaign.id, 0)
             campaign_info = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
             dm = channel.guild.get_member(campaign_info.dm)
             await dm.send(f"This is a notification that your request to unlock a campaign has been processed. New "
@@ -199,9 +202,9 @@ class ActionHandler:
 
     @staticmethod
     @dm_check
-    async def update(bot: 'DNDBot', channel: discord.TextChannel, campaign: int, member: discord.Member) -> bool:
+    async def update(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member, amnt: int) -> bool:
         try:
-            await bot.CampaignPlayerManager.set_max_player_count(channel, campaign, int(embed.fields[4].value))
+            await bot.CampaignPlayerManager.set_max_player_count(channel, int(campaign.id), amnt)
             campaign_info = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
             dm = channel.guild.get_member(campaign_info.dm)
             await dm.send(f"This is a notification that your request to update the max player count for a campaign has "

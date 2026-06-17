@@ -222,7 +222,7 @@ async def get_players(campaign_id: typing.Union[int, str], auth: str, response: 
 @permissions(Permissions.CAMPAIGN_CREATE)
 async def create_campaign(auth: str, campaign: PartialCampaignInfo, response: Response):
     init_guild()
-    if DNDBot.instance.CampaignSQLHelper.select_campaign(campaign):
+    if DNDBot.instance.CampaignSQLHelper.select_campaign(campaign.name):
         response.status_code = status.HTTP_400_BAD_REQUEST
         return json.dumps({"error": "Campaign with this name already exists"})
     text_based = False
