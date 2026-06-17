@@ -89,7 +89,7 @@ class CampaignSQLHelper:
             traceback.print_exc()
             return False
 
-    def select_campaign(self, campaign: Union[int, str]) -> CampaignInfo:
+    def select_campaign(self, campaign: Union[int, str]) -> CampaignInfo | None:
         """
         Selects a row from the campaign table
         :param campaign: Either campaign name or campaign ID
@@ -97,11 +97,17 @@ class CampaignSQLHelper:
         """
         # checks whether we passed ID or name
         if isinstance(campaign, int):
-            return self.dict_to_campaign(
-                self.bot.db.execute(f"SELECT * FROM campaigns WHERE id = {campaign}").fetchone())
+            campaign = self.bot.db.execute("SELECT * FROM campaigns WHERE id = ?", (campaign,)).fetchone()
+            if campaign is None:
+                return None
+            else:
+                return self.dict_to_campaign(campaign)
         else:
-            return self.dict_to_campaign(
-                self.bot.db.execute(f"SELECT * FROM campaigns WHERE name LIKE ?", (campaign,)).fetchone())
+            campaign = self.bot.db.execute("SELECT * FROM campaigns WHERE name = ?", (campaign,)).fetchone()
+            if campaign is None:
+                return None
+            else:
+                return self.dict_to_campaign(campaign)
 
     def rename_campaign(self, campaign: CampaignInfo, new_name: str):
         try:
