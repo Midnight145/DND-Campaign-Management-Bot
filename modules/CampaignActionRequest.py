@@ -19,12 +19,12 @@ class CampaignActionRequest(commands.Cog):
         if message.channel.id != 955932420262232065:
             return
 
-        if message.author.bot and message.embeds:
+        if message.embeds:
             embed = message.embeds[0]
             if not embed.title.startswith("Campaign Action Request"):
                 return
         await message.add_reaction("✅")
-        await message.add_reaction("❌")
+        await message.add_reaction("⏳")
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -38,7 +38,7 @@ class CampaignActionRequest(commands.Cog):
         if not embed.title.startswith("Campaign Action Request"):
             return
         roles = [self.bot.config["admin_role"], self.bot.config["developer_role"]]
-        if not any(role in [role.id for role in payload.member.roles] for role in roles):
+        if payload.emoji != "✅" or not any(role in [role.id for role in payload.member.roles] for role in roles):
             await message.remove_reaction(payload.emoji, payload.member)
 
         first, last = embed.fields[0].value, embed.fields[1].value
@@ -66,6 +66,7 @@ class CampaignActionRequest(commands.Cog):
         if result:
             await message.edit(content=f"✅ {action} request for {first} {last} ({discord_user}) in campaign "
                                        f"{campaign.name} processed successfully.", embeds=[])
+            await message.clear_reactions()
         else:
             await message.channel.send(f"Failed to process {action} request for {first} {last} ({discord_user}) in campaign "
                                        "{campaign.name}.")
@@ -213,3 +214,6 @@ class ActionHandler:
         except Exception as e:
             await channel.send(f"Failed to update campaign: {e}")
             return False
+
+async def setup(bot):
+    await bot.add_cog(CampaignActionRequest(bot))
