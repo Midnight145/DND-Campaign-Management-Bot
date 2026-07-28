@@ -19,10 +19,11 @@ class CampaignActionRequest(commands.Cog):
         if message.channel.id != 955932420262232065:
             return
 
-        if message.embeds:
-            embed = message.embeds[0]
-            if not embed.title.startswith("Campaign Action Request"):
-                return
+        if not message.embeds: return
+
+        embed = message.embeds[0]
+        if not embed.title.startswith("Campaign Action Request"):
+            return
         await message.add_reaction("✅")
         await message.add_reaction("⏳")
 

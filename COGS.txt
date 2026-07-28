@@ -10,3 +10,4 @@ modules.remind
 logs.member
 jishaku
 modules.scheduler
+modules.CampaignActionRequest
