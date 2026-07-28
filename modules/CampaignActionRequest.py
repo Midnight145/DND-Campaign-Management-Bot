@@ -74,10 +74,10 @@ class CampaignActionRequest(commands.Cog):
 
 def dm_check(func):
     @functools.wraps(func)
-    async def wrapper(bot: 'DNDBot', channel: discord.TextChannel, campaign, member: discord.Member, *args, **kwargs):
+    async def wrapper(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member, *args, **kwargs):
         # look up campaign object for permission check, but call the wrapped function
         # with the original campaign identifier so existing methods keep working
-        campaign_obj = await bot.CampaignSQLHelper.select_campaign(campaign)
+        campaign_obj = await bot.CampaignSQLHelper.select_campaign(campaign.name)
         if member.id != campaign_obj.dm:
             await channel.send("Only the DM can request this, this request has been denied.")
             return False
