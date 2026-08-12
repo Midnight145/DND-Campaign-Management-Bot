@@ -78,7 +78,7 @@ def dm_check(func):
     async def wrapper(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member, *args, **kwargs):
         # look up campaign object for permission check, but call the wrapped function
         # with the original campaign identifier so existing methods keep working
-        campaign_obj = await bot.CampaignSQLHelper.select_campaign(campaign.name)
+        campaign_obj = bot.CampaignSQLHelper.select_campaign(campaign.name)
         if member.id != campaign_obj.dm:
             await channel.send("Only the DM can request this, this request has been denied.")
             return False
@@ -107,7 +107,7 @@ class ActionHandler:
     async def end(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member, reason = "DM's request") -> bool:
         try:
             await bot.CampaignManager.delete_campaign(channel, campaign, reason)
-            campaign = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
+            campaign = bot.CampaignSQLHelper.select_campaign(channel, campaign)
             dm = channel.guild.get_member(campaign.dm)
             await dm.send(f"This is a notification that your request to end a campaign has been processed. The "
                           f"campaign will be deleted and the players will be notified. Campaign: {campaign.name}.")
@@ -120,7 +120,7 @@ class ActionHandler:
     @staticmethod
     @dm_check
     async def pause(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
-        campaign_info = await bot.CampaignSQLHelper.select_campaign(campaign)
+        campaign_info = bot.CampaignSQLHelper.select_campaign(campaign)
         category: discord.CategoryChannel = channel.guild.get_channel(campaign_info.category)
         campaign_role = channel.guild.get_role(campaign_info.role)
 
@@ -151,7 +151,7 @@ class ActionHandler:
     @staticmethod
     @dm_check
     async def resume(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
-        campaign_info = await bot.CampaignSQLHelper.select_campaign(campaign)
+        campaign_info = bot.CampaignSQLHelper.select_campaign(campaign)
         category: discord.CategoryChannel = channel.guild.get_channel(campaign_info.category)
         campaign_role = channel.guild.get_role(campaign_info.role)
 
@@ -178,7 +178,7 @@ class ActionHandler:
     async def lock(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
         try:
             await bot.CampaignManager.update_lock_status(channel, campaign.id, 1)
-            campaign_info = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
+            campaign_info = bot.CampaignSQLHelper.select_campaign(channel, campaign)
             dm = channel.guild.get_member(campaign_info.dm)
             await dm.send(f"This is a notification that your request to lock a campaign has been processed. New "
                           f"players will not be able to apply until the campaign has been unlocked. "
@@ -193,7 +193,7 @@ class ActionHandler:
     async def unlock(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member) -> bool:
         try:
             await bot.CampaignManager.update_lock_status(channel, campaign.id, 0)
-            campaign_info = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
+            campaign_info = bot.CampaignSQLHelper.select_campaign(channel, campaign)
             dm = channel.guild.get_member(campaign_info.dm)
             await dm.send(f"This is a notification that your request to unlock a campaign has been processed. New "
                           f"players will be able to apply for the campaign. Campaign: {campaign_info.name}.")
@@ -207,7 +207,7 @@ class ActionHandler:
     async def update(bot: 'DNDBot', channel: discord.TextChannel, campaign: CampaignInfo, member: discord.Member, amnt: int) -> bool:
         try:
             await bot.CampaignPlayerManager.set_max_player_count(channel, int(campaign.id), amnt)
-            campaign_info = await bot.CampaignSQLHelper.select_campaign(channel, campaign)
+            campaign_info = bot.CampaignSQLHelper.select_campaign(channel, campaign)
             dm = channel.guild.get_member(campaign_info.dm)
             await dm.send(f"This is a notification that your request to update the max player count for a campaign has "
                           f"been processed. Campaign: {campaign_info.name}.")
